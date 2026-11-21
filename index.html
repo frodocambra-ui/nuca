@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#ff8fb1">
+<meta name="description" content="Nuca, la amiga que habla, cuenta cuentos, ayuda con los deberes y pone música.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css">
+<title>Nuca</title>
+</head>
+<body>
+<header>
+  <span id="hola">¡Hola!</span>
+  <button id="btnAjustes" class="mini" aria-label="Ajustes">⚙️</button>
+</header>
+
+<main>
+  <div id="nuca" class="nuca" aria-hidden="true">
+    <svg viewBox="0 0 200 200" width="100%" height="100%">
+      <circle cx="40" cy="45" r="26" fill="#ffb3c8"/><circle cx="160" cy="45" r="26" fill="#ffb3c8"/>
+      <circle cx="40" cy="45" r="13" fill="#ff8fb1"/><circle cx="160" cy="45" r="13" fill="#ff8fb1"/>
+      <circle cx="100" cy="110" r="82" fill="#ffd1dc"/>
+      <g class="ojos"><ellipse cx="70" cy="100" rx="11" ry="14" fill="#3a2b3f"/><ellipse cx="130" cy="100" rx="11" ry="14" fill="#3a2b3f"/>
+      <circle cx="74" cy="95" r="4" fill="#fff"/><circle cx="134" cy="95" r="4" fill="#fff"/></g>
+      <circle cx="52" cy="130" r="11" fill="#ff9fb8" opacity=".7"/><circle cx="148" cy="130" r="11" fill="#ff9fb8" opacity=".7"/>
+      <ellipse class="boca" cx="100" cy="142" rx="18" ry="8" fill="#c2185b"/>
+    </svg>
+  </div>
+  <div id="estado">Toca el botón y habla conmigo</div>
+  <div id="bocadillo" class="bocadillo"></div>
+  <div id="extra"></div>
+  <div id="video" class="oculto">
+    <div id="ytbox"></div>
+    <button id="btnCerrarVideo" class="mini cerrar">✖ Cerrar música</button>
+  </div>
+</main>
+
+<div id="controles">
+  <button id="btnHablar" class="hablar" aria-label="Hablar">🎤</button>
+  <div class="fila">
+    <button class="op" data-cmd="deberes">➕ Deberes</button>
+    <button class="op" data-cmd="cuentos">📖 Cuentos</button>
+    <button class="op" data-cmd="musica">🎵 Música</button>
+    <button class="op" data-cmd="dibujo">📷 Mi dibujo</button>
+  </div>
+  <div class="fila" id="filaCuento" style="display:none">
+    <button id="btnPausa" class="op">⏸️ Pausa</button>
+    <button id="btnParar" class="op">⏹️ Parar</button>
+  </div>
+  <label class="siempre"><input type="checkbox" id="chkSiempre"> Escucha siempre</label>
+</div>
+
+<input type="file" id="foto" accept="image/*" capture="environment" style="display:none">
+
+<div id="camara" class="panel camara oculto">
+  <video id="camVideo" autoplay playsinline muted></video>
+  <canvas id="camCanvas" style="display:none"></canvas>
+  <div class="camBotones">
+    <button id="btnFoto" class="hablar" aria-label="Hacer foto">📸</button>
+  </div>
+  <div class="fila">
+    <button id="btnGirar" class="op">🔄 Cambiar cámara</button>
+    <button id="btnCerrarCam" class="op">✖ Cerrar</button>
+  </div>
+</div>
+
+<div id="ajustes" class="panel oculto">
+  <h2>Ajustes (para mayores)</h2>
+  <label>Nombre de la niña o el niño<br><input id="inNombre" type="text" maxlength="30"></label>
+  <label>Voz<br><select id="selVoz"></select></label>
+  <label>Tono de voz: <span id="vTono"></span><br><input id="inTono" type="range" min="0.8" max="2" step="0.05"></label>
+  <label>Velocidad: <span id="vVel"></span><br><input id="inVel" type="range" min="0.6" max="1.3" step="0.05"></label>
+  <label><input id="chkIA" type="checkbox"> Usar inteligencia artificial (necesita internet)</label>
+  <label>O escribe aquí lo que quieres decir a Nuca<br><input id="inTexto" type="text" placeholder="Por ejemplo: cuéntame un cuento"></label>
+  <button id="btnEnviar" class="op">Enviar</button>
+  <button id="btnProbarVoz" class="op">🔊 Probar voz</button>
+  <p class="nota">Nuca no pide datos personales. El nombre solo se guarda en este móvil. Las preguntas libres se envían a un servicio de IA gratuito (Pollinations) sin el nombre de la niña. La música sale de YouTube: conviene que un adulto esté cerca.</p>
+  <button id="btnCerrarAjustes" class="op">Cerrar</button>
+</div>
+
+<script src="cuentos.js"></script>
+<script src="logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
