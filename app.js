@@ -103,6 +103,15 @@ function escucharSiToca(ms){
 // ---------- Cerebro ----------
 function entender(texto){
   ultimaActividad = Date.now();
+  if (enReposo){
+    var tn = L.norm(texto);
+    if (!/\bnuca\b/.test(tn)) { estado(""); return; }  // en reposo solo responde si la llaman
+    salirReposo();
+    var resto = texto.replace(/^.*?\bnuca\b[\s,.!¡¿?]*/i,"").trim();
+    if (!L.norm(resto)) { hablar("¡Hola"+(cfg.nombre?", "+cfg.nombre:"")+"! Aquí estoy. ¿Qué quieres hacer?"); return; }
+    texto = resto;
+  }
+  ultimaNina = Date.now();
   var it = L.intent(texto);
   if (it.tipo==="nada") return;
   if (it.tipo==="parar"){ pararCuento(); cerrarVideo(); modo=null; hablar("Vale, paro."); return; }
@@ -242,10 +251,38 @@ $("extra").addEventListener("click", function(e){
 // Si hay silencio un rato (con la pantalla encendida), Nuca pregunta si quiere jugar.
 var ultimaActividad = Date.now();
 setInterval(function(){
-  if (!arrancado || document.hidden || hablando || escuchando || ocupado || cuento || videoAbierto || camAbierta) { if (hablando||escuchando||cuento||videoAbierto||camAbierta) ultimaActividad=Date.now(); return; }
+  if (enReposo || !arrancado || document.hidden || hablando || escuchando || ocupado || cuento || videoAbierto || camAbierta) { if (hablando||escuchando||cuento||videoAbierto||camAbierta) ultimaActividad=Date.now(); return; }
   if (modo==="mates" || modo==="juego" || modo==="nombre") { if (Date.now()-ultimaActividad < 300000) return; }
   if (Date.now()-ultimaActividad > 120000){ ultimaActividad=Date.now(); preguntarSiJuega(); }
 }, 10000);
+
+// ---------- Pantalla siempre encendida y modo reposo ----------
+var wakeLock = null, enReposo = false, ultimaNina = Date.now();
+function pedirWakeLock(){
+  if (!("wakeLock" in navigator) || document.hidden) return;
+  if (wakeLock && !wakeLock.released) return;
+  navigator.wakeLock.request("screen").then(function(w){ wakeLock=w; w.addEventListener("release", function(){ wakeLock=null; }); }).catch(function(){});
+}
+document.addEventListener("visibilitychange", function(){ if (!document.hidden && arrancado) pedirWakeLock(); });
+function entrarReposo(){
+  if (enReposo) return;
+  enReposo = true; pararCuento(); cerrarVideo(); modo=null;
+  $("reposo").className="reposo";
+  var el=document.documentElement; try{ if (el.requestFullscreen) el.requestFullscreen().catch(function(){}); }catch(e){}
+  pedirWakeLock(); escucharSiToca(500);
+}
+function salirReposo(){
+  if (!enReposo) return;
+  enReposo = false; ultimaNina = Date.now(); ultimaActividad = Date.now();
+  $("reposo").className="reposo oculto";
+  try{ if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){}); }catch(e){}
+}
+$("reposo").onclick = function(){ salirReposo(); arrancado=true; pedirWakeLock(); };
+$("btnReposo").onclick = function(){ arrancado=true; callar(); entrarReposo(); };
+// Tras 5 minutos sin que la niña hable, si «Escucha siempre» está activado, se pone en reposo.
+setInterval(function(){
+  if (!enReposo && cfg.siempre && arrancado && !hablando && !cuento && !videoAbierto && !camAbierta && Date.now()-ultimaNina > 300000) entrarReposo();
+}, 15000);
 
 // ---------- Cuentos ----------
 function listaCuentos(){
@@ -439,8 +476,9 @@ function charla(texto){
 
 // ---------- Botones ----------
 var arrancado = false;
+document.addEventListener("click", function(){ ultimaNina = Date.now(); if (arrancado) pedirWakeLock(); }, true);
 function arrancar(){
-  if (arrancado) return true; arrancado = true;
+  if (arrancado) return true; arrancado = true; pedirWakeLock();
   if (!cfg.nombre){ modo="nombre"; hablar("¡Hola! Me llamo Nuca y voy a ser tu amiga. ¿Y tú, cómo te llamas?", function(){ escuchar(); }); return false; }
   modo="quiere"; hablar("¡Hola, "+cfg.nombre+"! ¿Quieres jugar?", function(){ escuchar(); }); return false;
 }
@@ -482,7 +520,7 @@ if (!cfg.nombre) decir("¡Hola! Soy Nuca. Toca el botón rosa para empezar.");
 else { decir("¡Hola, "+cfg.nombre+"! ¿Quieres jugar? Toca el botón rosa."); }
 
 // Exponer para pruebas
-window.NucaApp = {entender:entender, estadoMates:function(){return mates;}, cuento:function(){return cuento;}, juego:function(){return juego;}, modo:function(){return modo;}, preguntarSiJuega:preguntarSiJuega, analizarFoto:analizarFoto, coloresDe:coloresDe, cfg:cfg};
+window.NucaApp = {entender:entender, estadoMates:function(){return mates;}, cuento:function(){return cuento;}, juego:function(){return juego;}, modo:function(){return modo;}, preguntarSiJuega:preguntarSiJuega, entrarReposo:entrarReposo, enReposo:function(){return enReposo;}, wakeLock:function(){return !!wakeLock;}, analizarFoto:analizarFoto, coloresDe:coloresDe, cfg:cfg};
 
 if ("serviceWorker" in navigator) window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
 })();

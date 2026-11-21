@@ -14,7 +14,7 @@
 <body>
 <header>
   <span id="hola">¡Hola!</span>
-  <button id="btnAjustes" class="mini" aria-label="Ajustes">⚙️</button>
+  <span><button id="btnReposo" class="mini" aria-label="Modo reposo">🌙</button> <button id="btnAjustes" class="mini" aria-label="Ajustes">⚙️</button></span>
 </header>
 
 <main>
@@ -68,6 +68,8 @@
   </div>
 </div>
 
+<div id="reposo" class="reposo oculto"><span id="reposoTxt">Nuca está descansando. Di «Nuca» o toca la pantalla.</span></div>
+
 <div id="ajustes" class="panel oculto">
   <h2>Ajustes (para mayores)</h2>
   <label>Nombre de la niña o el niño<br><input id="inNombre" type="text" maxlength="30"></label>
@@ -79,6 +81,7 @@
   <button id="btnEnviar" class="op">Enviar</button>
   <button id="btnProbarVoz" class="op">🔊 Probar voz</button>
   <p class="nota">Nuca no pide datos personales. El nombre solo se guarda en este móvil. Las preguntas libres se envían a un servicio de IA gratuito (Pollinations) sin el nombre de la niña. La música sale de YouTube: conviene que un adulto esté cerca.</p>
+  <p class="nota">Mientras Nuca está abierta, el móvil no se bloquea. Con «Escucha siempre» activado, tras unos minutos sin hablar se pone en modo reposo (pantalla negra, 🌙) y sigue escuchando: al oír «Nuca» se despierta. Conviene tener el móvil enchufado al cargador. Si se bloquea la pantalla de verdad o se cierra Chrome, Nuca deja de escuchar: para eso hará falta la versión nativa (app instalada).</p>
   <button id="btnCerrarAjustes" class="op">Cerrar</button>
 </div>
 
