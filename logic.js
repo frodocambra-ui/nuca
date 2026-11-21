@@ -121,7 +121,7 @@ var Logic = (function(){
   function songQuery(s){
     var t = norm(s);
     var m = t.match(/(?:musica|cancion|canciones|cancioncita)(?: de| del| que se llama)?\s*(.*)$/);
-    var q = m ? m[1] : t.replace(/^(nuca )?(pon|ponme|quiero oir|quiero escuchar|canta|cantame)\s*/,"");
+    var q = m ? m[1] : t.replace(/^(nuca )?(ponme|pon|quiero oir|quiero escuchar|cantame|canta)\s*/,"");
     q = q.replace(/^(la|el|los|las|una|un)\s+(?=\S)/,function(x){return x;}).trim();
     return q;
   }
@@ -145,6 +145,7 @@ var Logic = (function(){
     if (/\b(dibujo|foto|camara|mira esto|mira lo que|he pintado|he dibujado|pintado)\b/.test(t)) return {tipo:"dibujo"};
     if (/\b(musica|cancion|canciones|cantame|canta|bailar|ponme)\b/.test(t)) return {tipo:"musica", q:songQuery(s)};
     if (/\b(cuento|cuentos|historia|cuentame)\b/.test(t)) return {tipo:"cuento"};
+    if (/^(nuca )?(pon|ponme|quiero oir|quiero escuchar)\s+\S/.test(t) && !/\b(deberes|sumas|restas|juego|jugar)\b/.test(t)) return {tipo:"musica", q:songQuery(s)};
     if (localMath(s)) return {tipo:"cuenta"};
     if (/\b(deberes|sumas|sumar|restas|restar|matematicas|mates|numeros|contar|jugar a las cuentas|cuentas)\b/.test(t)) return {tipo:"deberes"};
     return {tipo:"charla"};
