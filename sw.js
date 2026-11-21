@@ -1,4 +1,4 @@
-var CACHE = "nuca-v1";
+var CACHE = "nuca-v2";
 var FILES = ["./","index.html","app.css","app.js","logic.js","cuentos.js","manifest.webmanifest","icon-192.png","icon-512.png"];
 self.addEventListener("install", function(e){ e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(FILES); })); self.skipWaiting(); });
 self.addEventListener("activate", function(e){ e.waitUntil(caches.keys().then(function(k){ return Promise.all(k.filter(function(x){ return x!==CACHE; }).map(function(x){ return caches.delete(x); })); })); self.clients.claim(); });
