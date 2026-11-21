@@ -220,7 +220,7 @@ function embeber(id){
 function cerrarVideo(){ if (!videoAbierto) return; videoAbierto=false; $("ytbox").innerHTML=""; $("video").className="oculto"; escucharSiToca(); }
 $("btnCerrarVideo").onclick = function(){ cerrarVideo(); };
 function botonYouTube(q){
-  return '<div class="lista"><button onclick="window.open(\'https://www.youtube.com/results?search_query='+encodeURIComponent(q+" canción infantil")+'\',\'_blank\')">▶️ Buscar «'+q.replace(/[<>"']/g,"")+'» en YouTube</button></div>';
+  return '<div class="lista"><button onclick="window.open(\'https://www.youtube.com/results?search_query='+encodeURIComponent(q)+'\',\'_blank\')">▶️ Buscar «'+q.replace(/[<>"']/g,"")+'» en YouTube</button></div>';
 }
 function ponerMusica(q, texto){
   modo=null; pararCuento();
@@ -234,7 +234,7 @@ function ponerMusica(q, texto){
   ocupado = true; estado("Buscando la canción…");
   var ctrl = window.AbortController ? new AbortController() : null;
   var tm = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 8000);
-  fetch("https://api.piped.private.coffee/search?filter=videos&q="+encodeURIComponent(q+" canción infantil para niños"), ctrl?{signal:ctrl.signal}:{})
+  fetch("https://api.piped.private.coffee/search?filter=videos&q="+encodeURIComponent(q), ctrl?{signal:ctrl.signal}:{})
     .then(function(r){ return r.json(); })
     .then(function(d){
       clearTimeout(tm); ocupado=false;
