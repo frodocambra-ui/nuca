@@ -102,15 +102,40 @@ function escucharSiToca(ms){
 
 // ---------- Cerebro ----------
 function entender(texto){
+  ultimaActividad = Date.now();
   var it = L.intent(texto);
   if (it.tipo==="nada") return;
   if (it.tipo==="parar"){ pararCuento(); cerrarVideo(); modo=null; hablar("Vale, paro."); return; }
   if (it.tipo==="pausa"){ pausarCuento(); return; }
   if (it.tipo==="seguir" && cuento){ seguirCuento(); return; }
   if (modo==="nombre"){ return ponerNombre(texto); }
+  var quiereJuego = Juegos.elegir(texto) || /\b(jugar|juego|juegos|jugamos)\b/.test(L.norm(texto));
+  if (modo==="quiere"){
+    var sn = Juegos.siNo(texto); modo=null;
+    if (sn==="si" && !Juegos.elegir(texto)) return menuJuegos();
+    if (sn==="no"){ hablar("¡Vale! Cuando quieras, me lo dices."); return; }
+  }
+  if (modo==="menuJuego"){
+    modo=null; var jj = Juegos.elegir(texto);
+    if (jj==="veoveo" && /camara|foto/.test(L.norm(texto))) return veoVeoCamara();
+    if (jj) return empezarJuego(jj);
+    if (Juegos.siNo(texto)==="si" || /cualquiera|me da igual|tu|elige/.test(L.norm(texto))) return empezarJuego(["adivinanzas","animales","veoveo","numeros"][Math.floor(Math.random()*4)]);
+  }
+  if (modo==="veoveoCam" && it.tipo!=="salir"){ modo=null; hablar("¡Muy bien visto! ¡Qué ojos tan buenos tienes! ¿Jugamos otra vez? Toca la cámara o dime otro juego."); return; }
+  if (modo==="juego" && it.tipo!=="salir" && it.tipo!=="cuento" && it.tipo!=="musica" && it.tipo!=="dibujo"){
+    var otro = Juegos.elegir(texto);
+    if (otro && otro!==juego.juego && Juegos.acierta(juego.juego, juego.item, texto)===false && /jugar|juego|cambia|mejor/.test(L.norm(texto))) return empezarJuego(otro);
+    if (/\b(otro juego|cambiar de juego|cambia)\b/.test(L.norm(texto))) return menuJuegos();
+    return comprobarJuego(texto);
+  }
+  if (quiereJuego && it.tipo!=="deberes" && it.tipo!=="cuento" && it.tipo!=="musica"){
+    var g = Juegos.elegir(texto);
+    if (g==="veoveo" && /camara|foto/.test(L.norm(texto))) return veoVeoCamara();
+    return g ? empezarJuego(g) : menuJuegos();
+  }
   if (modo==="mates" && it.tipo!=="salir" && it.tipo!=="cuento" && it.tipo!=="musica" && it.tipo!=="dibujo"){ return comprobar(texto); }
   if (modo==="dibujo" && it.tipo==="charla"){ return comentarDibujo(texto); }
-  if (it.tipo==="salir"){ modo=null; extra(""); hablar("¡Vale! Lo has hecho muy bien. ¿Qué quieres hacer ahora?"); return; }
+  if (it.tipo==="salir"){ modo=null; juego=null; extra(""); hablar("¡Vale! Lo has hecho muy bien. ¿Qué quieres hacer ahora?"); return; }
   if (it.tipo==="nombre"){ cfg.nombre=it.nombre; guardar(); saludo(); $("inNombre").value=cfg.nombre; hablar("¡Qué nombre tan bonito, "+cfg.nombre+"! Ya me lo sé."); return; }
   if (it.tipo==="deberes") return empezarMates();
   if (it.tipo==="cuenta"){ var r=L.localMath(texto); return hablar(r); }
@@ -124,7 +149,8 @@ function ponerNombre(texto){
   var t = L.norm(texto).replace(/^(me llamo|mi nombre es|soy|yo soy|pues)\s+/,"").split(" ")[0]||"";
   if (!t){ hablar("¿Cómo te llamas?"); return; }
   cfg.nombre = t.charAt(0).toUpperCase()+t.slice(1); guardar(); saludo(); $("inNombre").value=cfg.nombre; modo=null;
-  hablar("¡Encantada, "+cfg.nombre+"! Puedo ayudarte con los deberes, contarte cuentos, poner música o mirar tus dibujos. ¿Qué quieres hacer?");
+  modo="quiere";
+  hablar("¡Encantada, "+cfg.nombre+"! Puedo jugar contigo, ayudarte con los deberes, contarte cuentos, poner música o mirar tus dibujos. ¿Quieres jugar?");
 }
 
 // ---------- Deberes ----------
@@ -172,6 +198,54 @@ $("extra").addEventListener("click", function(e){
   var c = e.target.getAttribute && e.target.getAttribute("data-cuento");
   if (c){ for (var i=0;i<CUENTOS.length;i++) if (CUENTOS[i].id===c) contarCuento(CUENTOS[i]); }
 });
+
+// ---------- Juegos ----------
+var juego = null;
+function menuJuegos(){
+  modo="menuJuego";
+  extra('<div class="lista"><button data-juego="adivinanzas">❓ Adivinanzas</button><button data-juego="veoveo">👀 Veo veo</button><button data-juego="veoveoCam">📷 Veo veo con la cámara</button><button data-juego="numeros">🔢 Números</button><button data-juego="animales">🐮 ¿Qué animal hace…?</button></div>');
+  hablar("¡Bien! ¿A qué jugamos? Adivinanzas, veo veo, números, o qué animal hace.");
+}
+function empezarJuego(g){
+  modo="juego"; juego={juego:g, item:null, intentos:0, puntos:0};
+  var intro = {adivinanzas:"¡Vamos con las adivinanzas!", veoveo:"¡Jugamos al veo veo!", numeros:"¡Jugamos con los números!", animales:"¡Vamos a adivinar animales!"}[g];
+  hablar(intro+" Si quieres parar, di «ya no quiero».", siguienteJuego);
+}
+function siguienteJuego(){
+  if (modo!=="juego" || !juego) return;
+  var q = Juegos.pregunta(juego.juego, juego.item); juego.item=q.item; juego.intentos=0;
+  if (juego.juego==="numeros" && q.item.tipo==="contar") extra('<div>'+L.apples(q.item.a)+'</div>'); else extra('<div>'+({adivinanzas:"❓",veoveo:"👀",numeros:"🔢",animales:"🐾"}[juego.juego])+'</div>');
+  hablar(q.texto);
+}
+function comprobarJuego(texto){
+  if (Juegos.acierta(juego.juego, juego.item, texto)){
+    juego.puntos++;
+    extra('<div>⭐🎉⭐</div>');
+    hablar(L.ELOGIOS[Math.floor(Math.random()*L.ELOGIOS.length)]+" Llevas "+juego.puntos+(juego.puntos===1?" punto.":" puntos."), function(){ setTimeout(siguienteJuego, 400); });
+  } else {
+    juego.intentos++;
+    if (juego.intentos===1) hablar("¡Uy, no es eso! Prueba otra vez. "+(juego.juego==="numeros"?juego.item.texto:"Piensa un poquito."));
+    else hablar("¡Casi! "+Juegos.solucion(juego.juego, juego.item)+" Vamos con otra.", function(){ setTimeout(siguienteJuego, 600); });
+  }
+}
+var veoveoFoto = false;
+function veoVeoCamara(){ veoveoFoto = true; abrirCamara(); }
+function preguntarSiJuega(){
+  modo="quiere"; extra('<div class="lista"><button data-juego="si">🎲 ¡Sí, a jugar!</button></div>');
+  hablar("¿Quieres jugar"+(cfg.nombre?", "+cfg.nombre:"")+"?");
+}
+$("extra").addEventListener("click", function(e){
+  var g = e.target.getAttribute && e.target.getAttribute("data-juego");
+  if (!g) return; arrancado=true; callar();
+  if (g==="si") menuJuegos(); else if (g==="veoveoCam") veoVeoCamara(); else empezarJuego(g);
+});
+// Si hay silencio un rato (con la pantalla encendida), Nuca pregunta si quiere jugar.
+var ultimaActividad = Date.now();
+setInterval(function(){
+  if (!arrancado || document.hidden || hablando || escuchando || ocupado || cuento || videoAbierto || camAbierta) { if (hablando||escuchando||cuento||videoAbierto||camAbierta) ultimaActividad=Date.now(); return; }
+  if (modo==="mates" || modo==="juego" || modo==="nombre") { if (Date.now()-ultimaActividad < 300000) return; }
+  if (Date.now()-ultimaActividad > 120000){ ultimaActividad=Date.now(); preguntarSiJuega(); }
+}, 10000);
 
 // ---------- Cuentos ----------
 function listaCuentos(){
@@ -257,7 +331,7 @@ function abrirCamara(){
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ $("foto").click(); return; }
   camAbierta = true; $("camara").className="panel camara";
   arrancarCamara();
-  hablar("¡A ver, a ver! Enséñame tu dibujo y toca el botón grande de la foto.", function(){}, true);
+  hablar(veoveoFoto ? "¡Veo veo con la cámara! Apunta a algo y toca el botón grande de la foto." : "¡A ver, a ver! Enséñame tu dibujo y toca el botón grande de la foto.", function(){}, true);
 }
 function arrancarCamara(){
   if (stream){ stream.getTracks().forEach(function(t){ t.stop(); }); stream=null; }
@@ -274,7 +348,7 @@ function cerrarCamara(){
   if (stream){ stream.getTracks().forEach(function(t){ t.stop(); }); stream=null; }
 }
 $("btnGirar").onclick = function(){ mirarAtras=!mirarAtras; arrancarCamara(); };
-$("btnCerrarCam").onclick = function(){ cerrarCamara(); escucharSiToca(); };
+$("btnCerrarCam").onclick = function(){ veoveoFoto=false; cerrarCamara(); escucharSiToca(); };
 $("btnFoto").onclick = function(){
   var v=$("camVideo"); if (!v.videoWidth){ estado("La cámara aún se está encendiendo…"); return; }
   var c=$("camCanvas"), w=320, h=Math.round(v.videoHeight*320/v.videoWidth);
@@ -310,6 +384,11 @@ function analizarFoto(c){
   extra('<img id="fotoHecha" src="'+url+'" alt="Tu dibujo">');
   var cols=[]; try{ cols=coloresDe(c); }catch(e){}
   colores = cols.join(", ");
+  if (veoveoFoto){
+    veoveoFoto=false; modo="veoveoCam";
+    hablar(cols.length ? "Veo, veo. ¿Qué ves? Una cosita de color "+cols[0]+" en tu foto. ¿Qué es?" : "Veo, veo una cosita en tu foto. ¿Qué es?");
+    return;
+  }
   var frase = "¡Oooh, qué dibujo tan bonito"+(cfg.nombre?", "+cfg.nombre:"")+"! ";
   if (cols.length>=2) frase += "Me encantan los colores que has usado: "+cols.slice(0,-1).join(", ")+" y "+cols[cols.length-1]+". ";
   else if (cols.length===1) frase += "¡Cuánto "+cols[0]+"! ";
@@ -363,7 +442,7 @@ var arrancado = false;
 function arrancar(){
   if (arrancado) return true; arrancado = true;
   if (!cfg.nombre){ modo="nombre"; hablar("¡Hola! Me llamo Nuca y voy a ser tu amiga. ¿Y tú, cómo te llamas?", function(){ escuchar(); }); return false; }
-  return true;
+  modo="quiere"; hablar("¡Hola, "+cfg.nombre+"! ¿Quieres jugar?", function(){ escuchar(); }); return false;
 }
 $("btnHablar").onclick = function(){
   if (!arrancar()) return;
@@ -379,6 +458,7 @@ for (var i=0;i<ops.length;i++) ops[i].onclick = function(){
   else if (c==="cuentos"){ pararCuento(); modo=null; extra(listaCuentos()); hablar("¿Qué cuento quieres? Toca uno o dímelo."); }
   else if (c==="musica") ponerMusica("", "");
   else if (c==="dibujo") abrirCamara();
+  else if (c==="jugar") menuJuegos();
 };
 $("chkSiempre").onchange = function(){ cfg.siempre=this.checked; guardar(); if (cfg.siempre){ arrancado=true; escuchar(); } else pararEscucha(); };
 
@@ -399,10 +479,10 @@ $("btnEnviar").onclick = function(){ var t=$("inTexto").value.trim(); if (!t) re
 $("btnCerrarAjustes").onclick = function(){ $("ajustes").className="panel oculto"; };
 
 if (!cfg.nombre) decir("¡Hola! Soy Nuca. Toca el botón rosa para empezar.");
-else decir("¡Hola, "+cfg.nombre+"! Toca el botón rosa y dime qué quieres hacer.");
+else { decir("¡Hola, "+cfg.nombre+"! ¿Quieres jugar? Toca el botón rosa."); }
 
 // Exponer para pruebas
-window.NucaApp = {entender:entender, estadoMates:function(){return mates;}, cuento:function(){return cuento;}, analizarFoto:analizarFoto, coloresDe:coloresDe, cfg:cfg};
+window.NucaApp = {entender:entender, estadoMates:function(){return mates;}, cuento:function(){return cuento;}, juego:function(){return juego;}, modo:function(){return modo;}, preguntarSiJuega:preguntarSiJuega, analizarFoto:analizarFoto, coloresDe:coloresDe, cfg:cfg};
 
 if ("serviceWorker" in navigator) window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
 })();
